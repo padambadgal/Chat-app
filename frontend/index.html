@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      /* Custom styles that override Tailwind */
+      .message-bubble-sent {
+        background-color: #3b82f6;
+        color: white;
+        border-radius: 0.5rem;
+        border-bottom-right-radius: 0;
+      }
+      
+      .message-bubble-received {
+        background-color: white;
+        color: #1f2937;
+        border: 1px solid #e5e7eb;
+        border-radius: 0.5rem;
+        border-bottom-left-radius: 0;
+      }
+      
+      .sidebar-item-active {
+        background-color: #eff6ff;
+        border-left: 4px solid #3b82f6;
+      }
+      
+      .btn-primary {
+        background: linear-gradient(to right, #2563eb, #9333ea);
+        color: white;
+        font-weight: 600;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        transition: all 0.3s;
+      }
+      
+      .btn-primary:hover {
+        background: linear-gradient(to right, #1d4ed8, #7e22ce);
+        transform: scale(1.02);
+      }
+      
+      .btn-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
