@@ -27,14 +27,14 @@ const handleSubmit = async (e) => {
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-center">
           <MdMessage className="w-16 h-16 text-white mx-auto mb-2" />
           <h2 className="text-2xl font-bold text-primary-600">Welcome Back</h2>
-          <p className="text-blue-100">Sign in to continue to ChatApp</p>
+          <p className="text-blue-700">Sign in to continue to ChatApp</p>
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
             <div className="relative">
-              <MdEmail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <MdEmail className="absolute left-3 top-1/2 transform -translate-y-1 text-gray-400" size={18} />
               <input
                 type="email"
                 value={email}
@@ -49,7 +49,7 @@ const handleSubmit = async (e) => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
             <div className="relative">
-              <MdLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <MdLock className="absolute left-3 top-1/2 transform -translate-y-1 text-gray-400" size={18} />
               <input
                 type="password"
                 value={password}

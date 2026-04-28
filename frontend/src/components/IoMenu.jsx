@@ -1,3 +1,4 @@
+// ### frontend/src/components/Chat.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useSocket } from '../contexts/SocketContext';
@@ -16,7 +17,6 @@ import {
   IoCheckmarkCircle,
   IoChatbubbles
 } from 'react-icons/io5';
-// import IoMenu  from './IoMenu';
 import EmojiPicker from 'emoji-picker-react';
 
 const Chat = () => {
@@ -35,11 +35,6 @@ const Chat = () => {
   const typingTimeoutRef = useRef(null);
   const token = localStorage.getItem("token")
 
-  //ioMenu bar
-  const [showMenu, setShowMenu] = useState(false);
-  const menuRef = useRef(null);
-
-  //
 
   useEffect(() => {
     if (!user) {
@@ -232,45 +227,6 @@ const Chat = () => {
     return null; // Will redirect via useEffect
   }
 
-  //ioMenu bar
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (menuRef.current && !menuRef.current.contains(e.target)) {
-        setShowMenu(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  //edit message
-  const handleEditSave = async (messageId) => {
-  try {
-    const response = await axios.put(
-      `http://localhost:5000/api/messages/${messageId}`,
-      { text: editingText },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      }
-    );
-
-    // Update UI
-    setMessages(prev =>
-      prev.map(msg =>
-        msg._id === messageId ? { ...msg, text: editingText, edited: true } : msg
-      )
-    );
-
-    setEditingMessageId(null);
-    setEditingText('');
-
-  } catch (error) {
-    console.error("Edit error:", error);
-    toast.error("Failed to edit message");
-  }
-};
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
@@ -371,59 +327,9 @@ const Chat = () => {
                 </p>
               </div>
             </div>
-            <div className="relative" ref={menuRef}>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowMenu(!showMenu);
-                }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-              >
-                <IoMenu size={20} className="text-gray-600" />
-              </button>
-
-              {showMenu && (
-                <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-lg border border-gray-200 z-50">
-
-                  {/* View Profile */}
-                  <button
-                    onClick={() => {
-                      navigate('/profile');
-                      setShowMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100"
-                  >
-                    View Profile
-                  </button>
-
-                  {/* Clear Chat */}
-                  <button
-                    onClick={() => {
-                      setMessages([]); // simple clear (frontend)
-                      setShowMenu(false);
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100"
-                  >
-                    Clear Chat
-                  </button>
-
-                  {/* Divider */}
-                  <div className="border-t border-gray-200"></div>
-
-                  {/* Logout */}
-                  <button
-                    onClick={() => {
-                      logout();
-                      navigate('/login');
-                    }}
-                    className="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 rounded-b-xl"
-                  >
-                    Logout
-                  </button>
-
-                </div>
-              )}
-            </div>
+            <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+              <IoMenu size={20} className="text-gray-600" />
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
@@ -446,19 +352,7 @@ const Chat = () => {
                           : 'bg-white text-gray-800 border border-gray-200'
                           }`}
                       >
-                        {editingMessageId === message._id ? (
-  <input
-    type="text"
-    value={editingText}
-    onChange={(e) => setEditingText(e.target.value)}
-    onKeyDown={(e) => {
-      if (e.key === 'Enter') handleEditSave(message._id);
-    }}
-    className="text-sm text-black px-2 py-1 rounded"
-  />
-) : (
-  <p className="text-sm break-words">{message.text}</p>
-)}
+                        <p className="text-sm break-words">{message.text}</p>
                         <div className="flex items-center justify-end space-x-1 mt-1">
                           <span className="text-xs opacity-75">
                             {format(new Date(message.createdAt), 'HH:mm')}
@@ -469,9 +363,6 @@ const Chat = () => {
                             ) : (
                               <IoCheckmarkCircle size={12} className="text-blue-200" />
                             )
-                          )}
-                          {message.edited && (
-                            <span className="text-xs ml-1 opacity-60">(edited)</span>
                           )}
                         </div>
                       </div>

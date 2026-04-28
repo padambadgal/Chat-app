@@ -40,4 +40,30 @@ router.get('/:userId', auth, async (req, res) => {
   }
 });
 
+router.put('/messages/:id', auth, async (req, res) => {
+  try {
+    const { text } = req.body;
+
+    const message = await Message.findById(req.params.id);
+
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+
+    // Only sender can edit
+    if (message.sender.toString() !== req.userId) {
+      return res.status(403).json({ error: 'Not allowed' });
+    }
+
+    message.text = text;
+    message.edited = true;
+
+    await message.save();
+
+    res.json(message);
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 module.exports = router;

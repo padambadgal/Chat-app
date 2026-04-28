@@ -3,10 +3,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { 
-  IoArrowBack, 
-  IoSave, 
-  IoCamera, 
+import {
+  IoArrowBack,
+  IoSave,
+  IoCamera,
   IoPerson,
   IoMail,
   IoKey,
@@ -14,8 +14,10 @@ import {
   IoCloseCircle
 } from 'react-icons/io5';
 
+
 const Profile = () => {
-  const { user, token, logout } = useAuth();
+
+  const { user, token, logout,setUser  } = useAuth();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: '',
@@ -43,19 +45,19 @@ const Profile = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.username.trim()) {
       newErrors.username = 'Username is required';
     } else if (formData.username.length < 3) {
       newErrors.username = 'Username must be at least 3 characters';
     }
-    
+
     if (!formData.email.trim()) {
       newErrors.email = 'Email is required';
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = 'Email is invalid';
     }
-    
+
     if (showPasswordForm) {
       if (!formData.currentPassword) {
         newErrors.currentPassword = 'Current password is required';
@@ -67,7 +69,7 @@ const Profile = () => {
         newErrors.confirmPassword = 'Passwords do not match';
       }
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -92,7 +94,7 @@ const Profile = () => {
         toast.error('Please select an image file');
         return;
       }
-      
+
       setAvatar(file);
       const reader = new FileReader();
       reader.onloadend = () => {
@@ -104,20 +106,20 @@ const Profile = () => {
 
   const updateProfile = async () => {
     if (!validateForm()) return;
-    
+
     setLoading(true);
     try {
       const updateData = {
         username: formData.username,
         email: formData.email
       };
-      
+
       // If password update is requested
       if (showPasswordForm && formData.newPassword) {
         updateData.currentPassword = formData.currentPassword;
         updateData.newPassword = formData.newPassword;
       }
-      
+
       // If avatar is selected
       if (avatar) {
         const formDataImg = new FormData();
@@ -129,23 +131,19 @@ const Profile = () => {
           }
         });
         updateData.avatar = avatarResponse.data.avatar;
+        console.log('Avatar uploaded successfully:', avatarResponse.data.avatar);
       }
-      
-      const response = await axios.put('http://localhost:5000/api/users/profile', updateData, {
+
+      const response =await axios.put("http://localhost:5000/api/users/profile", updateData, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
       // Update local storage with new user data
-      const updatedUser = { ...user, ...response.data.user };
+      const updatedUser = response.data.user;
       localStorage.setItem('user', JSON.stringify(updatedUser));
-      
+      // If you have setUser in context:
+      setUser(updatedUser);
       toast.success('Profile updated successfully!');
-      
-      // Refresh page data
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-      
+
     } catch (error) {
       console.error('Update error:', error);
       toast.error(error.response?.data?.error || 'Failed to update profile');
@@ -194,14 +192,18 @@ const Profile = () => {
                 <div className="relative inline-block">
                   <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border-4 border-white">
                     {avatarPreview ? (
-                      <img 
-                        src={avatarPreview} 
-                        alt="Avatar" 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <IoPerson size={64} className="text-white/80" />
-                    )}
+  <img
+    src={
+      avatarPreview.startsWith('http')
+        ? avatarPreview
+        : `http://localhost:5000${avatarPreview}`
+    }
+    alt="Avatar"
+    className="w-full h-full object-cover"
+  />
+) : (
+  <IoPerson size={64} className="text-white/80" />
+)}
                   </div>
                   <label className="absolute bottom-0 right-0 p-2 bg-white rounded-full cursor-pointer shadow-lg hover:scale-110 transition-transform">
                     <IoCamera size={16} className="text-blue-600" />
@@ -213,14 +215,14 @@ const Profile = () => {
                     />
                   </label>
                 </div>
-                
+
                 <h2 className="mt-4 text-xl text-blue-700 font-semibold">{user?.username}</h2>
                 <p className="text-blue-100 text-blue-700 text-sm">{user?.email}</p>
-                
+
                 <div className="mt-6 pt-6 border-t border-white/20">
                   <div className="text-sm">
                     <p className="text-blue-700 text-lg font-bold">Member since</p>
-                    <p className="font-semibold">
+                    <p className="font-semibold text-blue-600">
                       {new Date(user?.createdAt).toLocaleDateString()}
                     </p>
                   </div>
@@ -234,7 +236,7 @@ const Profile = () => {
                 {/* Basic Information */}
                 <div className="mb-6">
                   <h3 className="text-lg font-semibold text-gray-800 mb-4">Basic Information</h3>
-                  
+
                   <div className="space-y-4">
                     {/* Username */}
                     <div>
@@ -248,9 +250,8 @@ const Profile = () => {
                           name="username"
                           value={formData.username}
                           onChange={handleInputChange}
-                          className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.username ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                          className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.username ? 'border-red-500' : 'border-gray-300'
+                            }`}
                           placeholder="Enter username"
                         />
                       </div>
@@ -271,9 +272,8 @@ const Profile = () => {
                           name="email"
                           value={formData.email}
                           onChange={handleInputChange}
-                          className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.email ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                          className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.email ? 'border-red-500' : 'border-gray-300'
+                            }`}
                           placeholder="Enter email"
                         />
                       </div>
@@ -313,9 +313,8 @@ const Profile = () => {
                             name="currentPassword"
                             value={formData.currentPassword}
                             onChange={handleInputChange}
-                            className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                              errors.currentPassword ? 'border-red-500' : 'border-gray-300'
-                            }`}
+                            className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.currentPassword ? 'border-red-500' : 'border-gray-300'
+                              }`}
                             placeholder="Enter current password"
                           />
                         </div>
@@ -334,9 +333,8 @@ const Profile = () => {
                           name="newPassword"
                           value={formData.newPassword}
                           onChange={handleInputChange}
-                          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.newPassword ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.newPassword ? 'border-red-500' : 'border-gray-300'
+                            }`}
                           placeholder="Enter new password (min 6 characters)"
                         />
                         {errors.newPassword && (
@@ -354,9 +352,8 @@ const Profile = () => {
                           name="confirmPassword"
                           value={formData.confirmPassword}
                           onChange={handleInputChange}
-                          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                            errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-                          }`}
+                          className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                            }`}
                           placeholder="Confirm new password"
                         />
                         {errors.confirmPassword && (
@@ -382,7 +379,7 @@ const Profile = () => {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex items-center space-x-2 px-6 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all transform hover:scale-[1.02] disabled:opacity-50"
+                    className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
                   >
                     {loading ? (
                       <>
@@ -396,7 +393,7 @@ const Profile = () => {
                       </>
                     )}
                   </button>
-                  
+
                   <button
                     type="button"
                     onClick={() => navigate('/chat')}
@@ -404,6 +401,7 @@ const Profile = () => {
                   >
                     Cancel
                   </button>
+
                 </div>
               </form>
             </div>
@@ -419,7 +417,7 @@ const Profile = () => {
             </div>
             <p className="text-sm text-green-600">Your account is active and secure</p>
           </div>
-          
+
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
             <div className="flex items-center space-x-2 text-blue-700 mb-2">
               <IoCloseCircle size={20} />

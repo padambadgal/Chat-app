@@ -6,13 +6,10 @@ const User = require('../models/User');
 
 // ================= REGISTER =================
 router.post('/register', async (req, res) => {
-  console.log('=== REGISTRATION REQUEST ===');
-  console.log('Request body:', req.body);
-
   try {
     const { username, email, password } = req.body;
 
-    // 🔒 Basic validation
+    // Validation
     if (!username || !email || !password) {
       return res.status(400).json({ error: 'All fields are required' });
     }
@@ -21,7 +18,7 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'Password must be at least 6 characters' });
     }
 
-    // 🔍 Check existing user
+    // Check existing user
     const existingUser = await User.findOne({
       $or: [{ email }, { username }]
     });
@@ -30,39 +27,31 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ error: 'User already exists' });
     }
 
-    // ✅ Create user
-    const user = new User({
-      username,
-      email,
-      password // ⚠️ must be hashed in model pre-save
-    });
-
+    // Create user
+    const user = new User({ username, email, password });
     await user.save();
 
-    console.log('User created:', user._id);
-    console.log('Stored password:', user.password);
-
-    // 🔑 Token
+    // Token
     const token = jwt.sign(
       { userId: user._id },
-      process.env.JWT_SECRET || 'secretkey',
+      process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
-    return res.status(201).json({
+    // Response (SAFE)
+    res.status(201).json({
       success: true,
       token,
       user: {
         id: user._id,
         username: user.username,
-        email: user.email,
-        password: user.password // ⚠️ for debugging only
+        email: user.email
       }
     });
 
   } catch (error) {
     console.error('Registration error:', error);
-    return res.status(500).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 

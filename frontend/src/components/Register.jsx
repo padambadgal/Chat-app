@@ -32,14 +32,14 @@ const Register = () => {
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 p-6 text-center">
           <MdMessage className="w-16 h-16 text-white mx-auto mb-2" />
           <h2 className="text-2xl font-bold text-primary-600">Create Account</h2>
-          <p className="text-blue-400">Join ChatApp today</p>
+          <p className="text-blue-700">Join ChatApp today</p>
         </div>
         
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Username</label>
             <div className="relative">
-              <MdPerson className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <MdPerson className="absolute left-3 top-1/2 transform -translate-y-1 text-gray-400" size={18} />
               <input
                 type="text"
                 value={username}
@@ -54,7 +54,7 @@ const Register = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Email Address</label>
             <div className="relative">
-              <MdEmail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <MdEmail className="absolute left-3 top-1/2 transform -translate-y-1 text-gray-400" size={18} />
               <input
                 type="email"
                 value={email}
@@ -69,7 +69,7 @@ const Register = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Password</label>
             <div className="relative">
-              <MdLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <MdLock className="absolute left-3 top-1/2 transform -translate-y-1 text-gray-400" size={18} />
               <input
                 type="password"
                 value={password}
@@ -84,7 +84,7 @@ const Register = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Confirm Password</label>
             <div className="relative">
-              <MdLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+              <MdLock className="absolute left-3 top-1/2 transform -translate-y-1 text-gray-400" size={18} />
               <input
                 type="password"
                 value={confirmPassword}

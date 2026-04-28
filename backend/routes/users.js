@@ -9,6 +9,29 @@ const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const path = require('path');
 
+// Configure multer for file upload
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({
+  storage: storage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only images are allowed'));
+    }
+  }
+});
+
 router.get('/conversations', auth, async (req, res) => {
   try {
     console.log('USER ID:', req.userId);
@@ -68,75 +91,40 @@ router.get('/search', auth, async (req, res) => {
 // Update user profile
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { username, email, avatar, currentPassword, newPassword } = req.body;
+    const { username, email, avatar } = req.body;
 
     const user = await User.findById(req.userId);
+
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Update basic info
-    if (username) user.username = username;
-    if (email) user.email = email;
-    if (avatar) user.avatar = avatar;
+    user.username = username || user.username;
+    user.email = email || user.email;
 
-    // Update password if provided
-    if (currentPassword && newPassword) {
-      const isValid = await user.comparePassword(currentPassword);
-      if (!isValid) {
-        return res.status(400).json({ error: 'Current password is incorrect' });
-      }
-
-      if (newPassword.length < 6) {
-        return res.status(400).json({ error: 'New password must be at least 6 characters' });
-      }
-
-      user.password = newPassword;
+    // 🔥 IMPORTANT LINE
+    if (avatar) {
+      user.avatar = avatar;
     }
 
     await user.save();
 
     res.json({
       success: true,
-      user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        avatar: user.avatar
-      }
+      user
     });
 
   } catch (error) {
-    console.error('Error updating profile:', error);
+    console.error('PROFILE UPDATE ERROR:', error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Configure multer for file upload
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'uploads/');
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'avatar-' + uniqueSuffix + path.extname(file.originalname));
-  }
-});
-
-const upload = multer({
-  storage: storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
-  fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only images are allowed'));
-    }
-  }
-});
 
 router.post('/upload-avatar', auth, upload.single('avatar'), async (req, res) => {
   try {
+    console.log("FILE:", req.file); // 👈 DEBUG
+
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
@@ -145,7 +133,7 @@ router.post('/upload-avatar', auth, upload.single('avatar'), async (req, res) =>
     res.json({ avatar: avatarUrl });
 
   } catch (error) {
-    console.error('Error uploading avatar:', error);
+    console.error('UPLOAD ERROR FULL:', error); // 👈 IMPORTANT
     res.status(500).json({ error: error.message });
   }
 });

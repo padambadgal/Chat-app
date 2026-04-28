@@ -13,6 +13,7 @@ axios.defaults.baseURL = 'http://localhost:5000';
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // const [user, setUser] = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
 
   useEffect(() => {
@@ -20,7 +21,7 @@ export const AuthProvider = ({ children }) => {
     const checkAuth = async () => {
       const storedToken = localStorage.getItem('token');
       const storedUser = localStorage.getItem('user');
-      
+
       if (storedToken && storedUser) {
         try {
           // Verify token with backend (optional but recommended)
@@ -36,7 +37,7 @@ export const AuthProvider = ({ children }) => {
       }
       setLoading(false);
     };
-    
+
     checkAuth();
   }, []);
 
@@ -45,18 +46,18 @@ export const AuthProvider = ({ children }) => {
       console.log('Attempting login...');
       const response = await axios.post('/api/auth/login', { email, password });
       const { token, user } = response.data;
-      
+
       // Store in localStorage
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      
+
       // Set axios default header
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
+
       // Update state
       setToken(token);
       setUser(user);
-      
+
       toast.success(`Welcome back, ${user.username}!`);
       return true;
     } catch (error) {
@@ -70,25 +71,25 @@ export const AuthProvider = ({ children }) => {
   const register = async (username, email, password) => {
     try {
       console.log('Attempting registration...');
-      const response = await axios.post('/api/auth/register', { 
-        username, 
-        email, 
-        password 
+      const response = await axios.post('/api/auth/register', {
+        username,
+        email,
+        password
       });
-      
+
       const { token, user } = response.data;
-      
+
       // Store in localStorage
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
-      
+
       // Set axios default header
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      
+
       // Update state
       setToken(token);
       setUser(user);
-      
+
       toast.success('Registration successful! Welcome aboard!');
       return true;
     } catch (error) {
@@ -103,21 +104,21 @@ export const AuthProvider = ({ children }) => {
     // Clear localStorage
     localStorage.removeItem('token');
     localStorage.removeItem('user');
-    
+
     // Clear axios headers
     delete axios.defaults.headers.common['Authorization'];
-    
+
     // Clear state
     setToken(null);
     setUser(null);
-    
+
     toast.success('Logged out successfully');
-    
+
     // Note: navigation will be handled by ProtectedRoute
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, setUser, logout,token, loading }}>
       {children}
     </AuthContext.Provider>
   );

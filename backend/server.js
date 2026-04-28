@@ -23,6 +23,7 @@ const io = socketIO(server, {
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use('/uploads', express.static('uploads'));
 
 // Logging middleware
 app.use((req, res, next) => {
