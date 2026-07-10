@@ -3,58 +3,42 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'react-hot-toast';
 import Login from './components/Login';
 import Register from './components/Register';
-import Chat from './components/Chat';
+import ChatPage from './pages/ChatPage';
+import Profile from './components/Profile';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { SocketProvider } from './contexts/SocketContext';
-import Profile from './components/Profile';
 
-// Protected Route Component
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
-
+  
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-500 border-t-transparent"></div>
       </div>
     );
   }
-
-  if (!user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
+  
+  return user ? children : <Navigate to="/login" />;
 };
 
-// Public Route (redirect to chat if already logged in)
 const PublicRoute = ({ children }) => {
   const { user, loading } = useAuth();
-
+  
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading...</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-900">
+        <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-500 border-t-transparent"></div>
       </div>
     );
   }
-
-  if (user) {
-    return <Navigate to="/chat" replace />;
-  }
-
-  return children;
+  
+  return user ? <Navigate to="/chat" /> : children;
 };
 
 function AppContent() {
   const { user } = useAuth();
-
+  
   return (
     <SocketProvider>
       <Routes>
@@ -70,7 +54,7 @@ function AppContent() {
         } />
         <Route path="/chat" element={
           <ProtectedRoute>
-            <Chat />
+            <ChatPage />
           </ProtectedRoute>
         } />
         <Route path="/profile" element={
@@ -78,10 +62,7 @@ function AppContent() {
             <Profile />
           </ProtectedRoute>
         } />
-
-        <Route path="/" element={
-          <Navigate to={user ? "/chat" : "/login"} replace />
-        } />
+        <Route path="/" element={<Navigate to={user ? "/chat" : "/login"} />} />
       </Routes>
     </SocketProvider>
   );
@@ -91,7 +72,15 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Toaster position="top-right" />
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: '#1f2937',
+              color: '#fff',
+            },
+          }}
+        />
         <AppContent />
       </AuthProvider>
     </Router>

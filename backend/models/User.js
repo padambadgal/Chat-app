@@ -6,7 +6,8 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
-    trim: true
+    trim: true,
+    minlength: 3
   },
   email: {
     type: String,
@@ -17,7 +18,8 @@ const userSchema = new mongoose.Schema({
   },
   password: {
     type: String,
-    required: true
+    required: true,
+    minlength: 6
   },
   avatar: {
     type: String,
@@ -36,27 +38,26 @@ const userSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// CORRECTED: Hash password before saving with async/await
-userSchema.pre('save', async function () {
+// Hash password before saving
+userSchema.pre('save', function(next) {
   const user = this;
-
-  console.log('Pre-save middleware triggered');
-
+  
   if (!user.isModified('password')) {
-    console.log('Password not modified');
-    return;
+    return next();
   }
-
-  try {
-    const hashedPassword = await bcrypt.hash(user.password, 10);
-    user.password = hashedPassword;
-  } catch (error) {
-    console.error('Error hashing password:', error);
-    throw error; // ✅ important (instead of next)
-  }
+  
+  bcrypt.genSalt(10, (err, salt) => {
+    if (err) return next(err);
+    
+    bcrypt.hash(user.password, salt, (err, hash) => {
+      if (err) return next(err);
+      user.password = hash;
+      next();
+    });
+  });
 });
 
-// Compare password method (async/await version)
+// Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
