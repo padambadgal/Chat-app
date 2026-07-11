@@ -3,38 +3,54 @@ const mongoose = require('mongoose');
 const messageSchema = new mongoose.Schema({
   sender: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: "User",
     required: true
   },
+
   receiver: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: "User",
     required: true
   },
+
   content: {
     type: String,
     required: true
   },
+
   type: {
     type: String,
-    enum: ['text', 'image', 'file'],
-    default: 'text'
+    default: "text"
   },
+
   read: {
     type: Boolean,
     default: false
   },
+
   edited: {
     type: Boolean,
     default: false
   },
-  timestamp: {
+
+  // NEW
+  isDeleted: {
+    type: Boolean,
+    default: false
+  },
+
+  deletedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    default: null
+  },
+
+  deletedAt: {
     type: Date,
-    default: Date.now
+    default: null
   }
-}, {
-  timestamps: true
-});
+
+}, { timestamps: true });
 
 messageSchema.index({ sender: 1, receiver: 1, timestamp: -1 });
 messageSchema.index({ receiver: 1, read: 1 });

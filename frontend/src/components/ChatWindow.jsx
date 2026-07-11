@@ -4,10 +4,10 @@ import { useSocket } from '../contexts/SocketContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { format } from 'date-fns';
-import { 
-  IoSend, 
-  IoHappy, 
-  IoAttach, 
+import {
+  IoSend,
+  IoHappy,
+  IoAttach,
   IoMenu,
   IoCheckmarkDoneCircle,
   IoCheckmarkCircle,
@@ -24,6 +24,7 @@ import toast from 'react-hot-toast';
 
 const ChatWindow = ({ selectedUser }) => {
   const { user, logout } = useAuth();
+  // console.log("Logged User:", user);
   const socket = useSocket();
   const navigate = useNavigate();
   const [messages, setMessages] = useState([]);
@@ -72,14 +73,22 @@ const ChatWindow = ({ selectedUser }) => {
     if (!socket) return;
 
     socket.on('private_message', (message) => {
-      if (message.sender._id === selectedUser?._id || message.receiver._id === selectedUser?._id) {
+      const receiverId =
+        typeof message.receiver === "object"
+          ? message.receiver._id
+          : message.receiver;
+
+      if (
+        message.sender._id === selectedUser?._id ||
+        receiverId === selectedUser?._id
+      ) {
         setMessages(prev => [...prev, message]);
-        markMessageAsRead(message._id, message.sender._id);
       }
     });
 
     socket.on('message_sent', (message) => {
       setMessages(prev => [...prev, message]);
+      console.log(message);
     });
 
     socket.on('user_typing', ({ userId, isTyping }) => {
@@ -96,7 +105,7 @@ const ChatWindow = ({ selectedUser }) => {
 
     socket.on('message_deleted', (data) => {
       console.log('📩 Message deleted event received:', data);
-      
+
       setMessages(prev => prev.map(msg => {
         if (msg._id === data.messageId) {
           return {
@@ -109,7 +118,7 @@ const ChatWindow = ({ selectedUser }) => {
         }
         return msg;
       }));
-      
+
       if (data.deletedBy !== user?._id) {
         toast.success('Message was deleted by the sender');
       }
@@ -117,7 +126,7 @@ const ChatWindow = ({ selectedUser }) => {
 
     socket.on('message_edited', (data) => {
       console.log('📩 Message edited event received:', data);
-      
+
       setMessages(prev => prev.map(msg => {
         if (msg._id === data.messageId) {
           return {
@@ -128,7 +137,7 @@ const ChatWindow = ({ selectedUser }) => {
         }
         return msg;
       }));
-      
+
       if (data.senderId !== user?._id) {
         toast.success('Message was edited');
       }
@@ -185,7 +194,7 @@ const ChatWindow = ({ selectedUser }) => {
 
   const fetchMessages = async () => {
     if (!selectedUser || !selectedUser._id) return;
-    
+
     setLoading(true);
     try {
       const response = await axios.get(
@@ -239,13 +248,16 @@ const ChatWindow = ({ selectedUser }) => {
   };
 
   const handleDeleteMessage = (messageId) => {
+    if (editingMessageId) {
+      toast.error("Finish editing first.");
+      return;
+    }
     if (!window.confirm('Are you sure you want to delete this message for everyone?')) {
       return;
     }
-    
+
     if (socket) {
       socket.emit('delete_message', { messageId });
-      toast.loading('Deleting message...');
     } else {
       toast.error('Socket not connected!');
     }
@@ -274,12 +286,12 @@ const ChatWindow = ({ selectedUser }) => {
         }
         return msg;
       }));
-      
+
       socket.emit('edit_message', {
         messageId: editingMessageId,
         newContent: editingText
       });
-      
+
       setEditingMessageId(null);
       setEditingText('');
       toast.success('Message updated');
@@ -298,14 +310,14 @@ const ChatWindow = ({ selectedUser }) => {
       toast.error('No user selected');
       return;
     }
-    
+
     if (!window.confirm(`Are you sure you want to delete all messages with ${selectedUser.username}?`)) {
       return;
     }
-    
+
     setShowMenu(false);
     toast.loading('Clearing chat...');
-    
+
     if (socket) {
       socket.emit('clear_chat', { userId: selectedUser._id });
     } else {
@@ -367,26 +379,23 @@ const ChatWindow = ({ selectedUser }) => {
             </p>
           </div>
         </div>
-        
+
         <div className="relative" ref={menuRef}>
           <button
             onClick={() => setShowMenu(!showMenu)}
-            className={`p-2 rounded-lg transition-colors ${
-              isDarkTheme ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-            }`}
+            className={`p-2 rounded-lg transition-colors ${isDarkTheme ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+              }`}
           >
             <IoMenu size={20} className={isDarkTheme ? 'text-gray-400' : 'text-gray-600'} />
           </button>
 
           {showMenu && (
-            <div className={`absolute right-0 mt-2 w-56 rounded-lg shadow-xl border z-50 overflow-hidden ${
-              isDarkTheme ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
-            }`}>
+            <div className={`absolute right-0 mt-2 w-56 rounded-lg shadow-xl border z-50 overflow-hidden ${isDarkTheme ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'
+              }`}>
               <button
                 onClick={toggleTheme}
-                className={`w-full flex items-center space-x-3 px-4 py-3 transition-colors ${
-                  isDarkTheme ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
-                }`}
+                className={`w-full flex items-center space-x-3 px-4 py-3 transition-colors ${isDarkTheme ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
+                  }`}
               >
                 {isDarkTheme ? (
                   <IoSunny size={18} className="text-yellow-400" />
@@ -400,9 +409,8 @@ const ChatWindow = ({ selectedUser }) => {
               <div className={`border-t ${isDarkTheme ? 'border-gray-700' : 'border-gray-200'}`}></div>
               <button
                 onClick={handleClearChat}
-                className={`w-full flex items-center space-x-3 px-4 py-3 transition-colors ${
-                  isDarkTheme ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
-                }`}
+                className={`w-full flex items-center space-x-3 px-4 py-3 transition-colors ${isDarkTheme ? 'hover:bg-gray-700' : 'hover:bg-gray-50'
+                  }`}
               >
                 <IoTrashBin size={18} className="text-red-500" />
                 <span className={isDarkTheme ? 'text-white' : 'text-gray-800'}>
@@ -415,9 +423,8 @@ const ChatWindow = ({ selectedUser }) => {
       </div>
 
       {/* Messages */}
-      <div className={`flex-1 overflow-y-auto p-4 space-y-3 ${
-        isDarkTheme ? 'bg-gray-900' : 'bg-gray-50'
-      }`}>
+      <div className={`flex-1 overflow-y-auto p-4 space-y-3 ${isDarkTheme ? 'bg-gray-900' : 'bg-gray-50'
+        }`}>
         {loading ? (
           <div className="flex justify-center items-center h-32">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent"></div>
@@ -428,11 +435,25 @@ const ChatWindow = ({ selectedUser }) => {
           </div>
         ) : (
           messages.map((message) => {
-            const isOwnMessage = message.sender?._id === user?._id;
+            const currentUserId = user?._id || user?.id;
+
+            const senderId =
+              typeof message.sender === "object"
+                ? message.sender._id
+                : message.sender;
+
+            const isOwnMessage = senderId === currentUserId;
+
+            console.log({
+              sender: message.sender,
+              senderId: senderId,
+              currentUserId: currentUserId,
+              own: isOwnMessage
+            });
             const isEditing = editingMessageId === message._id;
             const isDeleted = message.isDeleted || message.content === '🗑️ This message was deleted';
             const isHovered = hoveredMessageId === message._id;
-            
+
             return (
               <div
                 key={message._id}
@@ -443,17 +464,16 @@ const ChatWindow = ({ selectedUser }) => {
                 <div className={`max-w-xs lg:max-w-md ${isOwnMessage ? 'order-2' : 'order-1'} relative`}>
                   {/* Message Bubble */}
                   <div
-                    className={`rounded-lg px-4 py-2 ${
-                      isDeleted 
-                        ? 'bg-gray-600 text-gray-400 italic'
-                        : isOwnMessage
-                          ? isDarkTheme 
-                            ? 'bg-blue-600 text-white rounded-br-none' 
-                            : 'bg-blue-500 text-white rounded-br-none'
-                          : isDarkTheme
-                            ? 'bg-gray-700 text-white rounded-bl-none'
-                            : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'
-                    }`}
+                    className={`rounded-lg px-4 py-2 ${isDeleted
+                      ? 'bg-gray-600 text-gray-400 italic'
+                      : isOwnMessage
+                        ? isDarkTheme
+                          ? 'bg-blue-600 text-white rounded-br-none'
+                          : 'bg-blue-500 text-white rounded-br-none'
+                        : isDarkTheme
+                          ? 'bg-gray-700 text-white rounded-bl-none'
+                          : 'bg-white text-gray-800 border border-gray-200 rounded-bl-none'
+                      }`}
                   >
                     {isEditing ? (
                       <div className="flex items-center space-x-2">
@@ -472,9 +492,8 @@ const ChatWindow = ({ selectedUser }) => {
                               handleCancelEdit();
                             }
                           }}
-                          className={`flex-1 px-2 py-1 rounded ${
-                            isDarkTheme ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-800'
-                          } focus:outline-none focus:ring-2 focus:ring-blue-500`}
+                          className={`flex-1 px-2 py-1 rounded ${isDarkTheme ? 'bg-gray-600 text-white' : 'bg-gray-100 text-gray-800'
+                            } focus:outline-none focus:ring-2 focus:ring-blue-500`}
                         />
                         <button
                           onClick={handleSaveEdit}
@@ -496,7 +515,7 @@ const ChatWindow = ({ selectedUser }) => {
                         <p className={`text-sm break-words ${isDeleted ? 'opacity-60' : ''}`}>
                           {isDeleted ? '🗑️ This message was deleted' : message.content}
                         </p>
-                        
+
                         <div className="flex items-center justify-end space-x-1 mt-1">
                           <span className="text-xs opacity-75">
                             {format(new Date(message.createdAt), 'HH:mm')}
@@ -518,26 +537,26 @@ const ChatWindow = ({ selectedUser }) => {
 
                   {/* 🗑️✏️ Message Action Buttons - Now always visible for own messages */}
                   {/* 🗑️✏️ Message Action Buttons - Alternative approach */}
-{isOwnMessage && !isDeleted && !isEditing && (
-  <div className="absolute -top-3 -right-3 flex space-x-1 z-10 
-    opacity-0 transition-opacity duration-200
-    group-hover:opacity-100">
-    <button
-      onClick={() => handleStartEditing(message)}
-      className="p-1.5 rounded-full shadow-lg bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 hover:scale-110 transition-all duration-200"
-      title="Edit message"
-    >
-      <IoCreate size={14} />
-    </button>
-    <button
-      onClick={() => handleDeleteMessage(message._id)}
-      className="p-1.5 rounded-full shadow-lg bg-red-500 hover:bg-red-600 text-white hover:scale-110 transition-all duration-200"
-      title="Delete for everyone"
-    >
-      <IoTrashBin size={14} />
-    </button>
-  </div>
-)}
+                  {isOwnMessage && !isDeleted && !isEditing && (
+                    <div className="absolute -top-3 -right-3 flex space-x-1 z-10 
+                      opacity-0 transition-opacity duration-200
+                      group-hover:opacity-100">
+                      <button
+                        onClick={() => handleStartEditing(message)}
+                        className="p-1.5 rounded-full shadow-lg bg-white hover:bg-gray-50 text-gray-600 border border-gray-200 hover:scale-110 transition-all duration-200"
+                        title="Edit message"
+                      >
+                        <IoCreate size={14} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteMessage(message._id)}
+                        className="p-1.5 rounded-full shadow-lg bg-red-500 hover:bg-red-600 text-white hover:scale-110 transition-all duration-200"
+                        title="Delete for everyone"
+                      >
+                        <IoTrashBin size={14} />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             );
@@ -551,15 +570,13 @@ const ChatWindow = ({ selectedUser }) => {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            className={`p-2 rounded-lg transition-colors ${
-              isDarkTheme ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-            }`}
+            className={`p-2 rounded-lg transition-colors ${isDarkTheme ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+              }`}
           >
             <IoHappy size={20} className={isDarkTheme ? 'text-gray-400' : 'text-gray-600'} />
           </button>
-          <button className={`p-2 rounded-lg transition-colors ${
-            isDarkTheme ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-          }`}>
+          <button className={`p-2 rounded-lg transition-colors ${isDarkTheme ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+            }`}>
             <IoAttach size={20} className={isDarkTheme ? 'text-gray-400' : 'text-gray-600'} />
           </button>
           <input
@@ -575,18 +592,16 @@ const ChatWindow = ({ selectedUser }) => {
             onKeyPress={handleKeyPress}
             onKeyUp={!editingMessageId ? handleTyping : undefined}
             placeholder={editingMessageId ? "Edit message..." : "Type a message..."}
-            className={`flex-1 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              isDarkTheme 
-                ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-400' 
-                : 'bg-gray-100 border border-gray-300 text-gray-800 placeholder-gray-500'
-            }`}
+            className={`flex-1 px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${isDarkTheme
+              ? 'bg-gray-700 border border-gray-600 text-white placeholder-gray-400'
+              : 'bg-gray-100 border border-gray-300 text-gray-800 placeholder-gray-500'
+              }`}
           />
           {editingMessageId ? (
             <button
               onClick={handleCancelEdit}
-              className={`p-2 rounded-lg transition-colors ${
-                isDarkTheme ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
-              }`}
+              className={`p-2 rounded-lg transition-colors ${isDarkTheme ? 'hover:bg-gray-700' : 'hover:bg-gray-100'
+                }`}
             >
               <IoClose size={20} className={isDarkTheme ? 'text-gray-400' : 'text-gray-600'} />
             </button>

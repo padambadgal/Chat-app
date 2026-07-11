@@ -29,12 +29,12 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/chat_a
 console.log('Connecting to MongoDB...');
 
 mongoose.connect(MONGODB_URI)
-.then(() => {
-  console.log('✅ MongoDB connected successfully');
-})
-.catch(err => {
-  console.error('❌ MongoDB connection error:', err.message);
-});
+  .then(() => {
+    console.log('✅ MongoDB connected successfully');
+  })
+  .catch(err => {
+    console.error('❌ MongoDB connection error:', err.message);
+  });
 
 // Models
 const User = require('./models/User');
@@ -52,7 +52,7 @@ app.use('/api/messages', messageRoutes);
 
 // Test route
 app.get('/api/test', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Backend is working!',
     timestamp: new Date().toISOString()
   });
@@ -70,7 +70,7 @@ io.use((socket, next) => {
   if (!token) {
     return next(new Error('Authentication error'));
   }
-  
+
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secretkey');
     socket.userId = decoded.userId;
@@ -86,16 +86,16 @@ const userSockets = new Map();
 io.on('connection', async (socket) => {
   console.log(`✅ User ${socket.userId} connected`);
   userSockets.set(socket.userId, socket.id);
-  
+
   // Update user status to online
   try {
-    await User.findByIdAndUpdate(socket.userId, { 
+    await User.findByIdAndUpdate(socket.userId, {
       status: 'online',
       lastSeen: new Date()
     });
-    io.emit('user_status_change', { 
-      userId: socket.userId, 
-      status: 'online' 
+    io.emit('user_status_change', {
+      userId: socket.userId,
+      status: 'online'
     });
   } catch (error) {
     console.error('Error updating user status:', error);
@@ -107,7 +107,7 @@ io.on('connection', async (socket) => {
   socket.on('private_message', async (data) => {
     try {
       const { receiverId, content, type = 'text' } = data;
-      
+
       const message = new Message({
         sender: socket.userId,
         receiver: receiverId,
@@ -120,7 +120,7 @@ io.on('connection', async (socket) => {
       let conversation = await Conversation.findOne({
         participants: { $all: [socket.userId, receiverId] }
       });
-      
+
       if (!conversation) {
         conversation = new Conversation({
           participants: [socket.userId, receiverId],
@@ -134,14 +134,14 @@ io.on('connection', async (socket) => {
       await conversation.save();
 
       await message.populate('sender', 'username avatar email');
-      
+
       const receiverSocketId = userSockets.get(receiverId);
       if (receiverSocketId) {
         io.to(receiverSocketId).emit('private_message', message);
       }
-      
+
       socket.emit('message_sent', message);
-      
+
     } catch (error) {
       console.error('Message error:', error);
       socket.emit('message_error', { error: 'Failed to send message' });
@@ -152,9 +152,9 @@ io.on('connection', async (socket) => {
   socket.on('typing_start', ({ receiverId }) => {
     const receiverSocketId = userSockets.get(receiverId);
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit('user_typing', { 
-        userId: socket.userId, 
-        isTyping: true 
+      io.to(receiverSocketId).emit('user_typing', {
+        userId: socket.userId,
+        isTyping: true
       });
     }
   });
@@ -162,9 +162,9 @@ io.on('connection', async (socket) => {
   socket.on('typing_end', ({ receiverId }) => {
     const receiverSocketId = userSockets.get(receiverId);
     if (receiverSocketId) {
-      io.to(receiverSocketId).emit('user_typing', { 
-        userId: socket.userId, 
-        isTyping: false 
+      io.to(receiverSocketId).emit('user_typing', {
+        userId: socket.userId,
+        isTyping: false
       });
     }
   });
@@ -186,48 +186,54 @@ io.on('connection', async (socket) => {
   socket.on('delete_message', async ({ messageId }) => {
     try {
       console.log(`🗑️ Delete message request: ${messageId} from user ${socket.userId}`);
-      
+
       const message = await Message.findOne({
         _id: messageId,
         sender: socket.userId
       }).populate('sender', 'username avatar')
         .populate('receiver', 'username avatar');
-      
+
       if (!message) {
         console.log('❌ Message not found or unauthorized');
         socket.emit('delete_error', { error: 'Message not found or unauthorized' });
         return;
       }
-      
+
       // Delete the message
-      await message.deleteOne();
-      
+      // Soft delete (WhatsApp style)
+      message.isDeleted = true;
+      message.deletedBy = socket.userId;
+      message.deletedAt = new Date();
+      message.content = "🗑️ This message was deleted";
+      message.edited = false; // prevent showing "(edited)"
+
+      await message.save();
+
       // Create deleted message data
       const deletedMessageData = {
         messageId: message._id,
+        content: message.content,
+        isDeleted: true,
         deletedBy: socket.userId,
-        senderId: message.sender._id,
-        receiverId: message.receiver._id,
-        deletedAt: new Date(),
-        isDeleted: true
+        deletedAt: message.deletedAt
       };
-      
+
       // Notify sender
       const senderSocketId = userSockets.get(message.sender._id.toString());
       if (senderSocketId) {
-        io.to(senderSocketId).emit('message_deleted', deletedMessageData);
+        io.to(senderSocketId).emit("message_deleted", deletedMessageData);
+
         console.log('📤 Delete notification sent to sender');
       }
-      
+
       // Notify receiver
       const receiverSocketId = userSockets.get(message.receiver._id.toString());
       if (receiverSocketId) {
-        io.to(receiverSocketId).emit('message_deleted', deletedMessageData);
-        console.log('📤 Delete notification sent to receiver');
+        io.to(receiverSocketId).emit("message_deleted", deletedMessageData); console.log('📤 Delete notification sent to receiver');
       }
-      
+
       console.log(`✅ Message ${messageId} deleted successfully`);
-      
+
     } catch (error) {
       console.error('❌ Delete message error:', error);
       socket.emit('delete_error', { error: 'Failed to delete message' });
@@ -239,49 +245,64 @@ io.on('connection', async (socket) => {
     try {
       console.log(`✏️ Edit message request: ${messageId} from user ${socket.userId}`);
       console.log(`📝 New content: ${newContent}`);
-      
+
       const message = await Message.findOne({
         _id: messageId,
         sender: socket.userId
       }).populate('sender', 'username avatar')
         .populate('receiver', 'username avatar');
-      
+
       if (!message) {
-        console.log('❌ Message not found or unauthorized');
-        socket.emit('edit_error', { error: 'Message not found or unauthorized' });
+        socket.emit("edit_error", {
+          error: "Message not found."
+        });
         return;
       }
-      
+
+      if (message.isDeleted) {
+        socket.emit("edit_error", {
+          error: "Deleted messages can't be edited."
+        });
+        return;
+      }
+
+
+      if (!newContent || !newContent.trim()) {
+        socket.emit("edit_error", {
+          error: "Message cannot be empty."
+        });
+        return;
+      }
+
       // Update the message
-      message.content = newContent;
+      message.content = newContent.trim();
       message.edited = true;
+
       await message.save();
-      
+
       const editedMessageData = {
         messageId: message._id,
-        newContent: newContent,
+        newContent: message.content,
         edited: true,
-        senderId: message.sender._id,
-        receiverId: message.receiver._id,
-        updatedAt: new Date()
+        updatedAt: message.updatedAt
       };
-      
+
       // Notify sender
       const senderSocketId = userSockets.get(message.sender._id.toString());
       if (senderSocketId) {
         io.to(senderSocketId).emit('message_edited', editedMessageData);
         console.log('📤 Edit notification sent to sender');
       }
-      
+
       // Notify receiver
       const receiverSocketId = userSockets.get(message.receiver._id.toString());
       if (receiverSocketId) {
         io.to(receiverSocketId).emit('message_edited', editedMessageData);
         console.log('📤 Edit notification sent to receiver');
       }
-      
+
       console.log(`✅ Message ${messageId} edited successfully`);
-      
+
     } catch (error) {
       console.error('❌ Edit message error:', error);
       socket.emit('edit_error', { error: 'Failed to edit message' });
@@ -293,16 +314,16 @@ io.on('connection', async (socket) => {
   socket.on('clear_chat', async ({ userId }) => {
     try {
       console.log(`🗑️ Clear chat request between ${socket.userId} and ${userId}`);
-      
+
       const result = await Message.deleteMany({
         $or: [
           { sender: socket.userId, receiver: userId },
           { sender: userId, receiver: socket.userId }
         ]
       });
-      
+
       console.log(`✅ Deleted ${result.deletedCount} messages`);
-      
+
       await Conversation.findOneAndUpdate(
         {
           participants: { $all: [socket.userId, userId] }
@@ -312,22 +333,22 @@ io.on('connection', async (socket) => {
           updatedAt: new Date()
         }
       );
-      
+
       // Notify receiver
       const receiverSocketId = userSockets.get(userId);
       if (receiverSocketId) {
-        io.to(receiverSocketId).emit('chat_cleared', { 
+        io.to(receiverSocketId).emit('chat_cleared', {
           userId: socket.userId,
           clearedBy: socket.userId
         });
       }
-      
+
       // Notify sender
-      socket.emit('chat_cleared_success', { 
+      socket.emit('chat_cleared_success', {
         userId: userId,
-        deletedCount: result.deletedCount 
+        deletedCount: result.deletedCount
       });
-      
+
     } catch (error) {
       console.error('❌ Clear chat error:', error);
       socket.emit('clear_chat_error', { error: 'Failed to clear chat' });
@@ -338,15 +359,15 @@ io.on('connection', async (socket) => {
   socket.on('disconnect', async () => {
     console.log(`❌ User ${socket.userId} disconnected`);
     userSockets.delete(socket.userId);
-    
+
     try {
-      await User.findByIdAndUpdate(socket.userId, { 
+      await User.findByIdAndUpdate(socket.userId, {
         status: 'offline',
         lastSeen: new Date()
       });
-      io.emit('user_status_change', { 
-        userId: socket.userId, 
-        status: 'offline' 
+      io.emit('user_status_change', {
+        userId: socket.userId,
+        status: 'offline'
       });
     } catch (error) {
       console.error('Error updating user status on disconnect:', error);
